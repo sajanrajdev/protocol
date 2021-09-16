@@ -1,0 +1,14 @@
+development:
+  - name: Ganache-CLI (Avalanche-Mainnet Fork)
+    id: avalanche-main-fork
+    cmd: ganache-cli
+    host: http://127.0.0.1
+    timeout: 120
+    cmd_settings:
+      port: 8545
+      gas_limit: 20000000
+      accounts: 10
+      evm_version: istanbul
+      mnemonic: brownie
+      fork: avax-avash2
+      default_balance: 100000 ether
