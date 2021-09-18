@@ -33,15 +33,24 @@ def main():
 
     quad = deploy_quad(dev, proxyAdmin, governance, manager)
 
+    lp = interface.IERC20(quad)
+    console.print("[green] LP supply before mint [/green]", lp.totalSupply())
+
     DAI = interface.IERC20("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70")
 
     DAI.approve(
       quad,
-      1000000000000000000000, 
+      100000000000000000000, 
       {"from": "0xf258c32069e40d2AadCb8788BC0F29884845AEBA"}
     )
-    quad.mint("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70", 10000000000000000000, {"from": "0xf258c32069e40d2AadCb8788BC0F29884845AEBA"})
+    quad.mint("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70", 100000000000000000000, {"from": "0xf258c32069e40d2AadCb8788BC0F29884845AEBA"})
 
+    console.print("[green] LP supply after mint [/green]", lp.totalSupply())
+
+    bal = lp.balanceOf("0xf258c32069e40d2AadCb8788BC0F29884845AEBA")
+
+    console.print("[green] The LP token balance of User is: [/green]", bal)
+    
 
     return quad
 

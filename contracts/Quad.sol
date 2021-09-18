@@ -152,6 +152,13 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     inputToUnderlying(_token, _amount);
 
     // mint user same dollar amount in token
+    uint256 shares = 0;
+    if (totalSupply() == 0) {
+      shares = _amount;
+    } else {
+      shares = _amount;
+    }
+    _mint(msg.sender, shares);
   }
 
   function burn() public {}
