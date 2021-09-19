@@ -15,6 +15,7 @@ import "../deps/@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "../deps/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 import { IUniswapRouterV2 } from "../interfaces/uniswap/IUniswapRouterV2.sol";
+import "../interfaces/erc20/IERC20Detailed.sol";
 
 //  ________  ___  ___  ________  ________  ________
 // |\   __  \|\  \|\  \|\   __  \|\   ___ \|\   ____\
@@ -59,20 +60,28 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   /* ========== STATE VARIABLES ========== */
 
-  ///@dev initialized state variables
+  // Roles
   address public governance;
   address public manager;
+
+  // Accounting
   address[] public tokens;
   uint256[] public weights;
   address[] public inputs;
 
+  // Constants
   address public constant BASE = 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7;
   address public constant PANGOLIN_ROUTER =
     0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106;
   uint256 public sl;
   uint256 public constant MAX_BPS = 10000;
 
+  // Security
   mapping(address => uint256) public blockLock;
+
+  // Token
+  string internal constant _defaultNamePrefix = "Quad ";
+  string internal constant _symbolSymbolPrefix = "x";
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -81,15 +90,35 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     address _manager,
     address[3] memory _tokensConfig,
     uint256[3] memory _weightsConfig,
-    address[3] memory _inputsConfig
+    address[3] memory _inputsConfig,
+    bool _overrideTokenName,
+    string memory _namePrefix,
+    string memory _symbolPrefix
   ) public initializer whenNotPaused {
-    __Pausable_init();
-    /// @dev Add config here
+    /// @dev From config, add Roles and Accounting params
     governance = _governance;
     manager = _manager;
     tokens = _tokensConfig;
     weights = _weightsConfig;
     inputs = _inputsConfig;
+
+    /// @dev Add token params
+
+    string memory tokenName = "AVAX Blue Chip";
+    string memory tokenSymbol = "QUAD";
+
+    string memory name;
+    string memory symbol;
+
+    if (_overrideTokenName) {
+      name = string(abi.encodePacked(_namePrefix, tokenName));
+      symbol = string(abi.encodePacked(_symbolPrefix, tokenSymbol));
+    } else {
+      name = string(abi.encodePacked(_defaultNamePrefix, tokenName));
+      symbol = string(abi.encodePacked(_symbolSymbolPrefix, tokenSymbol));
+    }
+
+    __ERC20_init(name, symbol);
 
     // Set default slippage value
     sl = 10;
@@ -195,6 +224,8 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   /* ========== RESTRICTED FUNCTIONS ========== */
 
   function updateWeights() external {
+    _onlyGovernance();
+
     // Call rebalance
   }
 

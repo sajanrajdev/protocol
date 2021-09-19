@@ -27,11 +27,13 @@ def main():
     # Get actors
     governance = dev.address
     manager = dev.address
-    proxyAdmin = dev.address # In production, governance cannot be governance.
+    proxyAdmin = "0x0000000000000000000000000000000000000000" # In production, governance cannot be proxy admin.
 
     # Deploy Quad
 
     quad = deploy_quad(dev, proxyAdmin, governance, manager)
+
+    quad.unpause({"from": governance})
 
     lp = interface.IERC20(quad)
     console.print("[green] LP supply before mint [/green]", lp.totalSupply())
@@ -59,6 +61,8 @@ def main():
     console.print("[green] LP total supply after burn [/green]", lp.totalSupply())
     
     console.print("Symbol:", quad.symbol())
+    console.print("Symbol:", quad.symbol())
+
 
 
     return quad
@@ -70,7 +74,10 @@ def deploy_quad(dev, proxyAdmin, governance, manager):
         manager,
         PRODUCTION_TOKENS,
         PRODUCTION_WEIGHTS,
-        PRODUCTION_INPUTS
+        PRODUCTION_INPUTS,
+        False,
+        "",
+        "",
     ]
     
     print("Quad Arguments: ", args)
