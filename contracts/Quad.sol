@@ -134,7 +134,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   /* ========== MUTATIVE FUNCTIONS ========== */
 
-  function mint(address _token, uint256 _amount) public {
+  function mint(address _token, uint256 _amount) public whenNotPaused {
     require(_amount > 0, "Input amount cannot be zero.");
     require(
       _token == inputs[0] || _token == inputs[1] || _token == inputs[2],
@@ -161,11 +161,29 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     _mint(msg.sender, shares);
   }
 
-  function burn() public {}
+  function burn(uint256 _shares) public whenNotPaused {
+    // Calculate user's weight in the vault (in fixed point form)
+    uint256 ratio = _shares.mul(MAX_BPS).div(totalSupply()).div(MAX_BPS);
+    // Burn
+    _burn(msg.sender, _shares);
+
+    // Loop through transfers
+    for (uint256 i = 0; i < tokens.length; i++) {
+      uint256 tokenBalance = IERC20Upgradeable(tokens[i]).balanceOf(
+        address(this)
+      );
+      IERC20Upgradeable(tokens[i]).safeTransfer(
+        msg.sender,
+        ratio.mul(tokenBalance)
+      );
+    }
+  }
 
   /* ========== RESTRICTED FUNCTIONS ========== */
 
-  function updateWeights() external {}
+  function updateWeights() external {
+    // Call rebalance
+  }
 
   function rebalance() external {}
 
