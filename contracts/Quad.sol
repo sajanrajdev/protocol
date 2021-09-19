@@ -72,6 +72,8 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   uint256 public sl;
   uint256 public constant MAX_BPS = 10000;
 
+  mapping(address => uint256) public blockLock;
+
   /* ========== CONSTRUCTOR ========== */
 
   function initialize(
@@ -118,6 +120,9 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
       type(uint256).max
     );
     IERC20Upgradeable(BASE).safeApprove(PANGOLIN_ROUTER, type(uint256).max);
+
+    /// @dev Pause on launch.
+    _pause();
   }
 
   /* ========== VIEWS ========== */
@@ -135,6 +140,10 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   /* ========== MUTATIVE FUNCTIONS ========== */
 
   function mint(address _token, uint256 _amount) public whenNotPaused {
+    /// @dev Security implementations
+    _blockLocked();
+    _lockForBlock(msg.sender);
+
     require(_amount > 0, "Input amount cannot be zero.");
     require(
       _token == inputs[0] || _token == inputs[1] || _token == inputs[2],
@@ -162,6 +171,10 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   }
 
   function burn(uint256 _shares) public whenNotPaused {
+    /// @dev Security implementations
+    _blockLocked();
+    _lockForBlock(msg.sender);
+
     // Calculate user's weight in the vault (in fixed point form)
     uint256 ratio = _shares.mul(MAX_BPS).div(totalSupply()).div(MAX_BPS);
     // Burn
@@ -189,6 +202,10 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   /* ========== INTERNAL FUNCTIONS ========== */
 
+  function _lockForBlock(address account) internal {
+    blockLock[account] = block.number;
+  }
+
   function inputToUnderlying(address _token, uint256 _amount) internal {
     for (uint256 i = 0; i < tokens.length; i++) {
       uint256 _quantity = _amount.mul(weights[i]).div(MAX_BPS);
@@ -209,6 +226,16 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   }
 
   /* ========== MODIFIERS ========== */
+
+  function _onlyAuthorizedPausers() internal view {
+    require(msg.sender == manager || msg.sender == governance, "onlyPausers");
+  }
+
+  function _blockLocked() internal view {
+    require(blockLock[msg.sender] < block.number, "blockLocked");
+  }
+
+  /* ========== ERC20 OVERRIDES ========== */
 
   /* ========== EVENTS ========== */
 }

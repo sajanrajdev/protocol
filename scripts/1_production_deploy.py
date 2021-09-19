@@ -57,6 +57,8 @@ def main():
 
     console.print("[green] The LP token balance of User after burn is: [/green]", newBal)
     console.print("[green] LP total supply after burn [/green]", lp.totalSupply())
+    
+    console.print("Symbol:", quad.symbol())
 
 
     return quad
