@@ -200,6 +200,16 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   function rebalance() external {}
 
+  function pause() external {
+    _onlyAuthorizedPausers();
+    _pause();
+  }
+
+  function unpause() external {
+    _onlyGovernance();
+    _unpause();
+  }
+
   /* ========== INTERNAL FUNCTIONS ========== */
 
   function _lockForBlock(address account) internal {
@@ -231,11 +241,36 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     require(msg.sender == manager || msg.sender == governance, "onlyPausers");
   }
 
+  function _onlyGovernance() internal view {
+    require(msg.sender == governance, "onlyGovernance");
+  }
+
   function _blockLocked() internal view {
     require(blockLock[msg.sender] < block.number, "blockLocked");
   }
 
   /* ========== ERC20 OVERRIDES ========== */
+
+  /// @dev Add blockLock to transfers, users cannot transfer tokens in the same block as a deposit or withdrawal.
+  function transfer(address recipient, uint256 amount)
+    public
+    virtual
+    override
+    whenNotPaused
+    returns (bool)
+  {
+    _blockLocked();
+    return super.transfer(recipient, amount);
+  }
+
+  function transferFrom(
+    address sender,
+    address recipient,
+    uint256 amount
+  ) public virtual override whenNotPaused returns (bool) {
+    _blockLocked();
+    return super.transferFrom(sender, recipient, amount);
+  }
 
   /* ========== EVENTS ========== */
 }
