@@ -2,10 +2,22 @@ from brownie import (
     accounts,
 )
 
+from config import (
+    PRODUCTION_TOKENS, PRODUCTION_WEIGHTS, PRODUCTION_INPUTS, QUAD_MULTISIG
+)
+
 # Objective: 
 
-def test_account_balance():
-    balance = accounts[0].balance()
-    accounts[0].transfer(accounts[1], "10 ether", gas_price=0)
+def test_deploy_correct_settings(deployed):
+    """
+    Verifies that you set up the Quad properly
+    """
+    quad = deployed.quad
 
-    assert balance - "10 ether" == accounts[0].balance()
+    # Assert Roles
+    assert quad.governance() == QUAD_MULTISIG
+
+    # Assert right token params
+    
+
+   

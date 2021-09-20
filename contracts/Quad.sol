@@ -104,8 +104,8 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
     /// @dev Add token params
 
-    string memory tokenName = "AVAX Blue Chip";
-    string memory tokenSymbol = "QUAD";
+    string memory tokenName;
+    string memory tokenSymbol;
 
     string memory name;
     string memory symbol;
@@ -170,7 +170,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   function mint(address _token, uint256 _amount) public whenNotPaused {
     /// @dev Security implementations
-    _defend()
+    _defend();
     _blockLocked();
     _lockForBlock(msg.sender);
 
@@ -202,7 +202,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   function burn(uint256 _shares) public whenNotPaused {
     /// @dev Security implementations
-    _defend()
+    _defend();
     _blockLocked();
     _lockForBlock(msg.sender);
 
@@ -228,7 +228,6 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   function updateWeights() external {
     _onlyGovernance();
     // Call rebalance
-    rebalance();
   }
 
   function rebalance() external {
