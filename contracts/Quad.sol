@@ -170,6 +170,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   function mint(address _token, uint256 _amount) public whenNotPaused {
     /// @dev Security implementations
+    _defend()
     _blockLocked();
     _lockForBlock(msg.sender);
 
@@ -201,6 +202,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   function burn(uint256 _shares) public whenNotPaused {
     /// @dev Security implementations
+    _defend()
     _blockLocked();
     _lockForBlock(msg.sender);
 
@@ -290,6 +292,10 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   function _blockLocked() internal view {
     require(blockLock[msg.sender] < block.number, "blockLocked");
+  }
+
+  function _defend() internal view returns (bool) {
+    require(msg.sender == tx.origin, "Access denied for caller");
   }
 
   /* ========== ERC20 OVERRIDES ========== */
