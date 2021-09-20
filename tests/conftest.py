@@ -13,6 +13,10 @@ from config import (
 from dotmap import DotMap, test
 import pytest
 
+import click
+from rich.console import Console
+console = Console()
+
 
 @pytest.fixture
 def deployed():
@@ -48,20 +52,17 @@ def deployed():
         {"from": deployer},
     )
 
+    proxy = quad_proxy
+
      ## We delete from deploy and then fetch again so we can interact
     AdminUpgradeabilityProxy.remove(quad_proxy)
     quad_proxy = Quad.at(quad_proxy.address)
 
     quad_proxy.unpause({"from": governance})
-    print("[green]Quad was deployed at: [/green]", quad_proxy.address)
+    console.print("[green]Quad was deployed at: [/green]", quad_proxy.address)
 
     ## Setup dummy account for testing
-
-    lp = interface.IERC20(quad_proxy)
-    print("[green] LP supply before mint [/green]", lp.totalSupply())
-
     DAI = interface.IERC20("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70")
-
     DAI.approve(
       quad_proxy,
       100000000000000000000, 
@@ -78,6 +79,7 @@ def deployed():
         weights=PRODUCTION_WEIGHTS,
         inputs=PRODUCTION_INPUTS,
         randomUser=randomUser,
+        proxy=proxy
     )
 
 ## Contracts ##
@@ -85,6 +87,10 @@ def deployed():
 @pytest.fixture
 def quad(deployed):
     return deployed.quad
+
+@pytest.fixture
+def proxy(deployed):
+    return deployed.proxy
 
 ## Tokens ##
 
@@ -124,6 +130,10 @@ def governance(quad):
 @pytest.fixture
 def randomUser(deployed):
     return deployed.randomUser
+
+@pytest.fixture
+def proxyAdmin(deployed):
+    return deployed.proxyAdmin
 
 @pytest.fixture(autouse=True)
 def isolation(fn_isolation):

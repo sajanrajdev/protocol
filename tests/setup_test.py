@@ -21,3 +21,4 @@ def test_deploy_correct_settings(deployed):
     
 
    
+# Verify correct roles of deployed vs. config

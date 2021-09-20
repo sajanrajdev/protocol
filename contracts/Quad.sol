@@ -225,21 +225,6 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   /* ========== RESTRICTED FUNCTIONS ========== */
 
-  function updateWeights() external {
-    _onlyGovernance();
-    // Call rebalance
-  }
-
-  function rebalance() external {
-    _onlyGovernance();
-    _onlyManager();
-    // Get current portfolio weights
-    // Get target portfolio weights
-    // Calculate surplus and location
-    // Convert any surplus into BASE
-    // Loop through rebalancing array path swaps
-  }
-
   function pause() external {
     _onlyAuthorizedPausers();
     _pause();
