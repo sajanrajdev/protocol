@@ -35,7 +35,7 @@ brownie networks import network-config.yaml
 
 ## Basic Use
 
-To deploy the demo Badger Strategy in a development environment:
+To deploy the demo Quads instance in a development environment:
 
 1. Open the Brownie console. This automatically launches Ganache on a forked mainnet.
 
