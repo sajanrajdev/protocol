@@ -252,7 +252,6 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   function recoverERC20(address tokenAddress, uint256 tokenAmount) external {
     _onlyGovernance();
-
     IERC20Upgradeable(tokenAddress).safeTransfer(governance, tokenAmount);
   }
 
