@@ -15,10 +15,10 @@
 npm i
 
 ## Python Dependencies
-pip install virtualenv
+pip3 install virtualenv
 virtualenv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 5. Run the following command to install the Avalanche main network:
