@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.6.11;
 pragma experimental ABIEncoderV2;
 
@@ -156,14 +155,9 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   /* ========== VIEWS ========== */
 
-  /// @dev Specify the name of the strategy
-  function getName() external pure virtual returns (string memory) {
-    return "Blue-Chip-Quad";
-  }
-
   /// @dev Specify the version of the Quad, for upgrades
   function version() external pure returns (string memory) {
-    return "1.1";
+    return "0.1";
   }
 
   /* ========== MUTATIVE FUNCTIONS ========== */
@@ -188,7 +182,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     );
 
     // Turn it into the underlyings with respective weights
-    inputToUnderlying(_token, _amount);
+    _inputToUnderlying(_token, _amount);
 
     // mint user same dollar amount in token
     uint256 shares = 0;
@@ -268,7 +262,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     blockLock[account] = block.number;
   }
 
-  function inputToUnderlying(address _token, uint256 _amount) internal {
+  function _inputToUnderlying(address _token, uint256 _amount) internal {
     for (uint256 i = 0; i < tokens.length; i++) {
       uint256 _quantity = _amount.mul(weights[i]).div(MAX_BPS);
 
