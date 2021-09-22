@@ -76,48 +76,48 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   uint256 public sl;
   uint256 public constant MAX_BPS = 10000;
 
-  // Security
+  // Defense
   mapping(address => uint256) public blockLock;
 
   // Token
   string internal constant _defaultNamePrefix = "Quad ";
-  string internal constant _symbolSymbolPrefix = "x";
+  string internal constant _symbolSymbolPrefix = "ABC ";
 
   /* ========== CONSTRUCTOR ========== */
 
   function initialize(
+    //Roles
     address _governance,
     address _manager,
+    // Accounting
     address[3] memory _tokensConfig,
     uint256[3] memory _weightsConfig,
     address[3] memory _inputsConfig,
+    // Token
     bool _overrideTokenName,
     string memory _namePrefix,
     string memory _symbolPrefix
   ) public initializer whenNotPaused {
-    /// @dev From config, add Roles and Accounting params
+    // Roles
     governance = _governance;
     manager = _manager;
+    // Accounting
     tokens = _tokensConfig;
     weights = _weightsConfig;
     inputs = _inputsConfig;
-
-    /// @dev Add token params
-
-    string memory tokenName;
-    string memory tokenSymbol;
-
+    // Token
     string memory name;
     string memory symbol;
 
     if (_overrideTokenName) {
-      name = string(abi.encodePacked(_namePrefix, tokenName));
-      symbol = string(abi.encodePacked(_symbolPrefix, tokenSymbol));
+      name = string(abi.encodePacked(_namePrefix, "Index"));
+      symbol = string(abi.encodePacked(_symbolPrefix, "QUAD"));
     } else {
-      name = string(abi.encodePacked(_defaultNamePrefix, tokenName));
-      symbol = string(abi.encodePacked(_symbolSymbolPrefix, tokenSymbol));
+      name = string(abi.encodePacked(_defaultNamePrefix, "AVAX Blue Chip"));
+      symbol = string(abi.encodePacked(_symbolSymbolPrefix, "QUAD"));
     }
 
+    // Token Init
     __ERC20_init(name, symbol);
 
     // Set default slippage value
@@ -225,6 +225,27 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   /* ========== RESTRICTED FUNCTIONS ========== */
 
+  /// @notice Change tokens array
+  /// @notice Can only be changed by governance
+  function setTokens(address[] memory _tokens) external whenNotPaused {
+    _onlyGovernance();
+    tokens = _tokens;
+  }
+
+  /// @notice Change weights array
+  /// @notice Can only be changed by governance
+  function setWeights(uint256[] memory _weights) external whenNotPaused {
+    _onlyGovernance();
+    weights = _weights;
+  }
+
+  /// @notice Change inputs array
+  /// @notice Can only be changed by governance
+  function setInputs(address[] memory _inputs) external whenNotPaused {
+    _onlyGovernance();
+    inputs = _inputs;
+  }
+
   function pause() external {
     _onlyAuthorizedPausers();
     _pause();
@@ -233,6 +254,12 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   function unpause() external {
     _onlyGovernance();
     _unpause();
+  }
+
+  function recoverERC20(address tokenAddress, uint256 tokenAmount) external {
+    _onlyGovernance();
+
+    IERC20Upgradeable(tokenAddress).safeTransfer(governance, tokenAmount);
   }
 
   /* ========== INTERNAL FUNCTIONS ========== */
