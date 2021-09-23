@@ -200,7 +200,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     _blockLocked();
     _lockForBlock(msg.sender);
 
-    // Calculate user's weight in the vault (in fixed point form)
+    // Calculate user's weight in the vault (in fixed point)
     uint256 ratio = _shares.mul(MAX_BPS).div(totalSupply()).div(MAX_BPS);
     // Burn
     _burn(msg.sender, _shares);
