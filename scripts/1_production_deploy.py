@@ -7,7 +7,7 @@ from brownie import (
     Quad,
     AdminUpgradeabilityProxy,
 )
-from config import PRODUCTION_TOKENS, PRODUCTION_WEIGHTS, PRODUCTION_INPUTS
+from config import PRODUCTION_TOKENS, PRODUCTION_WEIGHTS, PRODUCTION_UNITS, PRODUCTION_INPUTS
 
 import click
 from rich.console import Console
@@ -28,13 +28,25 @@ def main():
     governance = dev.address
     manager = dev.address
     proxyAdmin = "0x0000000000000000000000000000000000000000" # In production, governance cannot be proxy admin.
+    randomUser = accounts.at("0xf258c32069e40d2AadCb8788BC0F29884845AEBA", force=True)
 
     # Deploy Quad
 
     quad = deploy_quad(dev, proxyAdmin, governance, manager)
 
     quad.unpause({"from": governance})
+
+    DAI = interface.IERC20("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70")
+
+    DAI.approve(
+      quad,
+      10000000000000000000000, 
+      {"from": randomUser}
+    )
+
+    quad.mint("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70",1000000000000000000000, 15000000000000000000, {"from": randomUser} )
     
+
     return quad
 
 def deploy_quad(dev, proxyAdmin, governance, manager):
@@ -44,6 +56,7 @@ def deploy_quad(dev, proxyAdmin, governance, manager):
         manager,
         PRODUCTION_TOKENS,
         PRODUCTION_WEIGHTS,
+        PRODUCTION_UNITS,
         PRODUCTION_INPUTS,
         False,
         "",

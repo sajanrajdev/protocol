@@ -66,6 +66,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   // Accounting
   address[] public tokens;
   uint256[] public weights;
+  uint256[] public units;
   address[] public inputs;
 
   // Constants
@@ -85,24 +86,21 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   /* ========== CONSTRUCTOR ========== */
 
   function initialize(
-    //Roles
     address _governance,
     address _manager,
-    // Accounting
-    address[3] memory _tokensConfig,
-    uint256[3] memory _weightsConfig,
+    address[5] memory _tokensConfig,
+    uint256[5] memory _weightsConfig,
+    uint256[5] memory _unitsConfig,
     address[3] memory _inputsConfig,
-    // Token
     bool _overrideTokenName,
     string memory _namePrefix,
     string memory _symbolPrefix
   ) public initializer whenNotPaused {
-    // Roles
     governance = _governance;
     manager = _manager;
-    // Accounting
     tokens = _tokensConfig;
     weights = _weightsConfig;
+    units = _unitsConfig;
     inputs = _inputsConfig;
     // Token
     string memory name;
@@ -123,6 +121,18 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     sl = 10;
 
     /// @dev do one off approvals here
+    IERC20Upgradeable(inputs[0]).safeApprove(
+      PANGOLIN_ROUTER,
+      type(uint256).max
+    );
+    IERC20Upgradeable(inputs[1]).safeApprove(
+      PANGOLIN_ROUTER,
+      type(uint256).max
+    );
+    IERC20Upgradeable(inputs[2]).safeApprove(
+      PANGOLIN_ROUTER,
+      type(uint256).max
+    );
     IERC20Upgradeable(tokens[0]).safeApprove(
       PANGOLIN_ROUTER,
       type(uint256).max
@@ -135,15 +145,11 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
       PANGOLIN_ROUTER,
       type(uint256).max
     );
-    IERC20Upgradeable(inputs[0]).safeApprove(
+    IERC20Upgradeable(tokens[3]).safeApprove(
       PANGOLIN_ROUTER,
       type(uint256).max
     );
-    IERC20Upgradeable(inputs[1]).safeApprove(
-      PANGOLIN_ROUTER,
-      type(uint256).max
-    );
-    IERC20Upgradeable(inputs[2]).safeApprove(
+    IERC20Upgradeable(tokens[4]).safeApprove(
       PANGOLIN_ROUTER,
       type(uint256).max
     );
@@ -157,39 +163,60 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   /// @dev Specify the version of the Quad, for upgrades
   function version() external pure returns (string memory) {
-    return "0.1";
+    return "0.1.1";
   }
 
   /* ========== MUTATIVE FUNCTIONS ========== */
 
-  function mint(address _token, uint256 _amount) public whenNotPaused {
+  function mint(
+    address _token,
+    uint256 _amount,
+    uint256 _quantity
+  ) public whenNotPaused {
     /// @dev Security implementations
     _defend();
     _blockLocked();
     _lockForBlock(msg.sender);
 
     require(_amount > 0, "Input amount cannot be zero.");
+    require(_quantity > 0, "Input quantity cannot be zero.");
     require(
       _token == inputs[0] || _token == inputs[1] || _token == inputs[2],
       "Input only DAI, USDC or USDT."
     );
 
-    // Collect one of three possible stablecoins
     IERC20Upgradeable(_token).safeTransferFrom(
       msg.sender,
       address(this),
       _amount
     );
 
-    // Turn it into the underlyings with respective weights
-    _inputToUnderlying(_token, _amount);
+    uint256[] memory requiredUnits = new uint256[](tokens.length);
 
-    // mint user same dollar amount in token
+    for (uint256 i = 0; i < tokens.length; i++) {
+      requiredUnits[i] = units[i].mul(_quantity);
+    }
+
+    for (uint256 i = 0; i < tokens.length; i++) {
+      address[] memory path = new address[](3);
+      path[0] = _token;
+      path[1] = BASE;
+      path[2] = tokens[i];
+
+      IUniswapRouterV2(PANGOLIN_ROUTER).swapExactTokensForTokens(
+        _amount.mul(weights[i]).div(MAX_BPS),
+        0,
+        path,
+        address(this),
+        now
+      );
+    }
+
     uint256 shares = 0;
     if (totalSupply() == 0) {
-      shares = _amount;
+      shares = _quantity;
     } else {
-      shares = _amount;
+      shares = _quantity;
     }
     _mint(msg.sender, shares);
   }
@@ -233,6 +260,13 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     weights = _weights;
   }
 
+  /// @notice Change units array
+  /// @notice Can only be changed by governance
+  function setUnits(uint256[] memory _inputs) external whenNotPaused {
+    _onlyGovernance();
+    units = _inputs;
+  }
+
   /// @notice Change inputs array
   /// @notice Can only be changed by governance
   function setInputs(address[] memory _inputs) external whenNotPaused {
@@ -257,27 +291,45 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   /* ========== INTERNAL FUNCTIONS ========== */
 
+  // function _zap(address _token, uint256 _amount) internal {
+  //   //
+  // }
+
+  // function _getRequiredTokenUnitsForMint(uint256 _quantity)
+  //   internal
+  //   returns (uint256[] memory)
+  // {
+  //   uint256[] memory notionalUnits = new uint256[](tokens.length);
+
+  //   for (uint256 i = 0; i < tokens.length; i++) {
+  //     notionalUnits[i] = units[i].mul(_quantity);
+  //   }
+  //   return notionalUnits;
+  // }
+
+  // function _inputToUnderlying(
+  //   address _token,
+  //   uint256 _amount,
+  //   uint256[] memory targetUnits
+  // ) internal {
+  //   for (uint256 i = 0; i < tokens.length; i++) {
+  //     address[] memory path = new address[](3);
+  //     path[0] = _token;
+  //     path[1] = BASE;
+  //     path[2] = tokens[i];
+
+  //     IUniswapRouterV2(PANGOLIN_ROUTER).swapTokensForExactTokens(
+  //       _amount.mul(weights[i]).div(unit),
+  //       0,
+  //       path,
+  //       address(this),
+  //       now
+  //     );
+  //   }
+  // }
+
   function _lockForBlock(address account) internal {
     blockLock[account] = block.number;
-  }
-
-  function _inputToUnderlying(address _token, uint256 _amount) internal {
-    for (uint256 i = 0; i < tokens.length; i++) {
-      uint256 _quantity = _amount.mul(weights[i]).div(MAX_BPS);
-
-      address[] memory path = new address[](3);
-      path[0] = _token;
-      path[1] = BASE;
-      path[2] = tokens[i];
-
-      IUniswapRouterV2(PANGOLIN_ROUTER).swapExactTokensForTokens(
-        _quantity,
-        0,
-        path,
-        address(this),
-        now
-      );
-    }
   }
 
   /* ========== MODIFIERS ========== */
