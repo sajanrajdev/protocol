@@ -44,7 +44,7 @@ def main():
       {"from": randomUser}
     )
 
-    quad.mint("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70",1000000000000000000000, 15000000000000000000, {"from": randomUser} )
+    quad.mint("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70",100000000000000000000, 15000000000000000000, {"from": randomUser} )
     
 
     return quad

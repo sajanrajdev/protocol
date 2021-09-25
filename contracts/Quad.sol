@@ -16,6 +16,8 @@ import "../deps/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable
 import { IUniswapRouterV2 } from "../interfaces/uniswap/IUniswapRouterV2.sol";
 import "../interfaces/erc20/IERC20Detailed.sol";
 
+import "./deps/Exchange.sol";
+
 //  ________  ___  ___  ________  ________  ________
 // |\   __  \|\  \|\  \|\   __  \|\   ___ \|\   ____\
 // \ \  \|\  \ \  \\\  \ \  \|\  \ \  \_|\ \ \  \___|_
@@ -33,18 +35,6 @@ import "../interfaces/erc20/IERC20Detailed.sol";
 //   MIT License
 //   ===========
 //
-//   Copyright (c) 2021 Quads Finance
-//
-//   Permission is hereby granted, free of charge, to any person obtaining a copy
-//   of this software and associated documentation files (the "Software"), to deal
-//   in the Software without restriction, including without limitation the rights
-//   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//   copies of the Software, and to permit persons to whom the Software is
-//   furnished to do so, subject to the following conditions:
-//
-//   The above copyright notice and this permission notice shall be included in all
-//   copies or substantial portions of the Software.
-//
 //   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 //   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 //   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -52,7 +42,7 @@ import "../interfaces/erc20/IERC20Detailed.sol";
 //   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 
-contract Quad is PausableUpgradeable, ERC20Upgradeable {
+contract Quad is PausableUpgradeable, ERC20Upgradeable, Exchange {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using AddressUpgradeable for address;
   using SafeMathUpgradeable for uint256;
@@ -133,26 +123,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
       PANGOLIN_ROUTER,
       type(uint256).max
     );
-    IERC20Upgradeable(tokens[0]).safeApprove(
-      PANGOLIN_ROUTER,
-      type(uint256).max
-    );
-    IERC20Upgradeable(tokens[1]).safeApprove(
-      PANGOLIN_ROUTER,
-      type(uint256).max
-    );
-    IERC20Upgradeable(tokens[2]).safeApprove(
-      PANGOLIN_ROUTER,
-      type(uint256).max
-    );
-    IERC20Upgradeable(tokens[3]).safeApprove(
-      PANGOLIN_ROUTER,
-      type(uint256).max
-    );
-    IERC20Upgradeable(tokens[4]).safeApprove(
-      PANGOLIN_ROUTER,
-      type(uint256).max
-    );
+
     IERC20Upgradeable(BASE).safeApprove(PANGOLIN_ROUTER, type(uint256).max);
 
     /// @dev Pause on launch.
@@ -290,43 +261,6 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   }
 
   /* ========== INTERNAL FUNCTIONS ========== */
-
-  // function _zap(address _token, uint256 _amount) internal {
-  //   //
-  // }
-
-  // function _getRequiredTokenUnitsForMint(uint256 _quantity)
-  //   internal
-  //   returns (uint256[] memory)
-  // {
-  //   uint256[] memory notionalUnits = new uint256[](tokens.length);
-
-  //   for (uint256 i = 0; i < tokens.length; i++) {
-  //     notionalUnits[i] = units[i].mul(_quantity);
-  //   }
-  //   return notionalUnits;
-  // }
-
-  // function _inputToUnderlying(
-  //   address _token,
-  //   uint256 _amount,
-  //   uint256[] memory targetUnits
-  // ) internal {
-  //   for (uint256 i = 0; i < tokens.length; i++) {
-  //     address[] memory path = new address[](3);
-  //     path[0] = _token;
-  //     path[1] = BASE;
-  //     path[2] = tokens[i];
-
-  //     IUniswapRouterV2(PANGOLIN_ROUTER).swapTokensForExactTokens(
-  //       _amount.mul(weights[i]).div(unit),
-  //       0,
-  //       path,
-  //       address(this),
-  //       now
-  //     );
-  //   }
-  // }
 
   function _lockForBlock(address account) internal {
     blockLock[account] = block.number;
