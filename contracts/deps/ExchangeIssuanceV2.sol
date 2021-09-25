@@ -14,6 +14,9 @@
 pragma solidity ^0.6.11;
 pragma experimental ABIEncoderV2;
 
+import "../../deps/@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import "../../deps/@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+
 import { AddressUpgradeable } from "../../deps/@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import { IERC20Upgradeable } from "../../deps/@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
@@ -37,7 +40,7 @@ import { UniSushiV2Library } from "../../external/UniSushiV2Library.sol";
  * All swaps are done using the best price found on Uniswap or Sushiswap.
  *
  */
-contract ExchangeIssuanceV2 is ReentrancyGuardUpgradeable {
+contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
   using AddressUpgradeable for address payable;
   using SafeMathUpgradeable for uint256;
   using PreciseUnitMath for uint256;
@@ -101,13 +104,15 @@ contract ExchangeIssuanceV2 is ReentrancyGuardUpgradeable {
 
   /* ============ Constructor ============ */
 
-  constructor(
+  function __ExchangeIssuanceV2_init(
     address _weth,
     address _uniFactory,
     IUniswapV2Router02 _uniRouter,
     address _sushiFactory,
     IUniswapV2Router02 _sushiRouter
-  ) public {
+  ) public initializer whenNotPaused {
+    __Pausable_init();
+
     uniFactory = _uniFactory;
     uniRouter = _uniRouter;
 
@@ -137,7 +142,7 @@ contract ExchangeIssuanceV2 is ReentrancyGuardUpgradeable {
   function approveToken(address _token) public {
     _safeApprove(_token, address(uniRouter), MAX_UINT96);
     _safeApprove(_token, address(sushiRouter), MAX_UINT96);
-    _safeApprove(_token, address(basicIssuanceModule), MAX_UINT96);
+    // _safeApprove(_token, address(basicIssuanceModule), MAX_UINT96);
   }
 
   /* ============ External Functions ============ */
@@ -170,7 +175,11 @@ contract ExchangeIssuanceV2 is ReentrancyGuardUpgradeable {
   ) external nonReentrant returns (uint256) {
     require(_amountInput > 0, "ExchangeIssuance: INVALID INPUTS");
 
-    _inputToken.safeTransferFrom(msg.sender, address(this), _amountInput);
+    IERC20Upgradeable(_inputToken).safeTransferFrom(
+      msg.sender,
+      address(this),
+      _amountInput
+    );
 
     uint256 amountEth = address(_inputToken) == WETH
       ? _amountInput
@@ -241,81 +250,6 @@ contract ExchangeIssuanceV2 is ReentrancyGuardUpgradeable {
   }
 
   /**
-   * Redeems an exact amount of SetTokens for an ERC20 token.
-   * The SetToken must be approved by the sender to this contract.
-   *
-   * @param _outputToken          Address of output token
-   * @param _amountSetToken       Amount SetTokens to redeem
-   * @param _minOutputReceive     Minimum amount of output token to receive
-   *
-   * @return outputAmount         Amount of output tokens sent to the caller
-   */
-  function redeemExactSetForToken(
-    address _outputToken,
-    uint256 _amountSetToken,
-    uint256 _minOutputReceive
-  ) external nonReentrant returns (uint256) {
-    require(_amountSetToken > 0, "ExchangeIssuance: INVALID INPUTS");
-
-    address[] memory components = tokens;
-    (
-      uint256 totalEth,
-      uint256[] memory amountComponents,
-      Exchange[] memory exchanges
-    ) = _getAmountETHForRedemption(components, _amountSetToken);
-
-    uint256 outputAmount;
-    if (address(_outputToken) == WETH) {
-      require(
-        totalEth > _minOutputReceive,
-        "ExchangeIssuance: INSUFFICIENT_OUTPUT_AMOUNT"
-      );
-      _redeemExactSet(_amountSetToken);
-      outputAmount = _liquidateComponentsForWETH(
-        components,
-        amountComponents,
-        exchanges
-      );
-    } else {
-      (
-        uint256 totalOutput,
-        Exchange outTokenExchange,
-
-      ) = _getMaxTokenForExactToken(
-          totalEth,
-          address(WETH),
-          address(_outputToken)
-        );
-      require(
-        totalOutput > _minOutputReceive,
-        "ExchangeIssuance: INSUFFICIENT_OUTPUT_AMOUNT"
-      );
-      _redeemExactSet(_amountSetToken);
-      uint256 outputEth = _liquidateComponentsForWETH(
-        components,
-        amountComponents,
-        exchanges
-      );
-      outputAmount = _swapExactTokensForTokens(
-        outTokenExchange,
-        WETH,
-        address(_outputToken),
-        outputEth
-      );
-    }
-
-    _outputToken.safeTransfer(msg.sender, outputAmount);
-    // emit ExchangeRedeem(
-    //   msg.sender,
-    //   _setToken,
-    //   _outputToken,
-    //   _amountSetToken,
-    //   outputAmount
-    // );
-    return outputAmount;
-  }
-
-  /**
    * Returns an estimated amount of SetToken that can be issued given an amount of input ERC20 token.
    *
    * @param _amountInput      Amount of the input token to spend
@@ -381,39 +315,6 @@ contract ExchangeIssuanceV2 is ReentrancyGuardUpgradeable {
     return tokenAmount;
   }
 
-  /**
-   * Returns amount of output ERC20 tokens received upon redeeming a given amount of SetToken.
-   *
-   * @param _amountSetToken       Amount of SetToken to be redeemed
-   * @param _outputToken          Address of output token
-   *
-   * @return                      Estimated amount of ether/erc20 that will be received
-   */
-  function getAmountOutOnRedeemSet(
-    address _outputToken,
-    uint256 _amountSetToken
-  ) external view returns (uint256) {
-    require(_amountSetToken > 0, "ExchangeIssuance: INVALID INPUTS");
-
-    address[] memory components = tokens;
-    (uint256 totalEth, , ) = _getAmountETHForRedemption(
-      components,
-      _amountSetToken
-    );
-
-    if (_outputToken == WETH) {
-      return totalEth;
-    }
-
-    // get maximum amount of tokens for totalEth amount of ETH
-    (uint256 tokenAmount, , ) = _getMaxTokenForExactToken(
-      totalEth,
-      WETH,
-      _outputToken
-    );
-    return tokenAmount;
-  }
-
   /* ============ Internal Functions ============ */
 
   /**
@@ -467,7 +368,7 @@ contract ExchangeIssuanceV2 is ReentrancyGuardUpgradeable {
       );
     }
 
-    basicIssuanceModule.issue(setIssueAmount, msg.sender);
+    // basicIssuanceModule.issue(setIssueAmount, msg.sender);
     return setIssueAmount;
   }
 
@@ -506,7 +407,7 @@ contract ExchangeIssuanceV2 is ReentrancyGuardUpgradeable {
       );
       totalEth = totalEth.add(amountEth);
     }
-    basicIssuanceModule.issue(_amountSetToken, msg.sender);
+    // basicIssuanceModule.issue(_amountSetToken, msg.sender);
     return totalEth;
   }
 
@@ -709,7 +610,7 @@ contract ExchangeIssuanceV2 is ReentrancyGuardUpgradeable {
           reserveOut
         );
       }
-      setIssueAmount = Math.min(
+      setIssueAmount = MathUpgradeable.min(
         amountComponent.preciseDiv(unitAmountComponents[i]),
         setIssueAmount
       );

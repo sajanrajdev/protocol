@@ -110,6 +110,17 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable, Exchange {
     // Set default slippage value
     sl = 10;
 
+    // Set Exchange
+
+    __ExchangeIssuanceV2_init(
+      address _weth,
+    address _uniFactory,
+    IUniswapV2Router02 _uniRouter,
+    address _sushiFactory,
+    IUniswapV2Router02 _sushiRouter
+
+    );
+
     /// @dev do one off approvals here
     IERC20Upgradeable(inputs[0]).safeApprove(
       PANGOLIN_ROUTER,
