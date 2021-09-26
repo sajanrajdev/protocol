@@ -16,6 +16,11 @@ import "../deps/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable
 import { IUniswapRouterV2 } from "../interfaces/uniswap/IUniswapRouterV2.sol";
 import "../interfaces/erc20/IERC20Detailed.sol";
 
+import { UniSushiV2Library } from "../external/UniSushiV2Library.sol";
+import { IUniswapV2Factory } from "../interfaces/uniswap/IUniswapV2Factory.sol";
+import { IUniswapV2Router02 } from "../interfaces/uniswap/IUniswapV2Router02.sol";
+import { IWETH } from "../interfaces/erc20/IWETH.sol";
+
 //  ________  ___  ___  ________  ________  ________
 // |\   __  \|\  \|\  \|\   __  \|\   ___ \|\   ____\
 // \ \  \|\  \ \  \\\  \ \  \|\  \ \  \_|\ \ \  \___|_
@@ -59,8 +64,10 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   // Constants
   address public constant BASE = 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7;
-  address public constant PANGOLIN_ROUTER =
-    0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106;
+  address public constant WETH = 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7;
+  address public constant ROUTER = 0x60aE616a2155Ee3d9A68541Ba4544862310933d4;
+  address public constant FACTORY = 0x9Ad6C38BE94206cA50bb0d90783181662f0Cfa10;
+
   uint256 public sl;
   uint256 public constant MAX_BPS = 10000;
 
@@ -110,20 +117,10 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     sl = 10;
 
     /// @dev do one off approvals here
-    IERC20Upgradeable(inputs[0]).safeApprove(
-      PANGOLIN_ROUTER,
-      type(uint256).max
-    );
-    IERC20Upgradeable(inputs[1]).safeApprove(
-      PANGOLIN_ROUTER,
-      type(uint256).max
-    );
-    IERC20Upgradeable(inputs[2]).safeApprove(
-      PANGOLIN_ROUTER,
-      type(uint256).max
-    );
-
-    IERC20Upgradeable(BASE).safeApprove(PANGOLIN_ROUTER, type(uint256).max);
+    IERC20Upgradeable(inputs[0]).safeApprove(ROUTER, type(uint256).max);
+    IERC20Upgradeable(inputs[1]).safeApprove(ROUTER, type(uint256).max);
+    IERC20Upgradeable(inputs[2]).safeApprove(ROUTER, type(uint256).max);
+    IERC20Upgradeable(BASE).safeApprove(ROUTER, type(uint256).max);
 
     /// @dev Pause on launch.
     _pause();
@@ -134,6 +131,57 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   /// @dev Specify the version of the Quad, for upgrades
   function version() external pure returns (string memory) {
     return "0.1.1";
+  }
+
+  function getEstimatedQuadsGivenInput(
+    address _inputToken,
+    uint256 _amountInput
+  ) internal view returns (uint256) {
+    require(_amountInput > 0, "Quad: INVALID INPUTS");
+    uint256 amountEth;
+    if (_inputToken != WETH) {
+      // get max amount of WETH for the `_amountInput` amount of input tokens
+      (amountEth, ) = _getMaxTokenForExactToken(
+        _amountInput,
+        _inputToken,
+        WETH
+      );
+    } else {
+      amountEth = _amountInput;
+    }
+    address[] memory components = tokens;
+    // get min amount of ETH to be spent to acquire the required amount of each Quad components
+    // amountEthIn is an array containing the amoutn of weth required to purchase each componenet in Quad.
+    uint256 sumEth = 0;
+    uint256[] memory amountEthIn = new uint256[](components.length);
+    address[] memory pairAddresses = new address[](components.length);
+
+    for (uint256 i = 0; i < components.length; i++) {
+      (amountEthIn[i], pairAddresses[i]) = _getMinTokenForExactToken(
+        units[i],
+        WETH,
+        tokens[i]
+      );
+      sumEth = sumEth.add(amountEthIn[i]);
+    }
+    // return (sumEth, amountEthIn, pairAddresses);
+    uint256[] memory budgetPerComponent = new uint256[](components.length);
+    for (uint256 i = 0; i < components.length; i++) {
+      // Needs to account for weight in portfolio
+      budgetPerComponent[i] = amountEth.mul(weights[i]).div(MAX_BPS);
+    }
+
+    uint256[] memory divisors = new uint256[](components.length);
+    for (uint256 i = 0; i < components.length; i++) {
+      divisors[i] = budgetPerComponent[i].div(amountEthIn[i]);
+    }
+
+    uint256 quadIssueAmount = type(uint256).max;
+
+    for (uint256 i = 0; i < components.length; i++) {
+      quadIssueAmount = MathUpgradeable.min(divisors[i], quadIssueAmount);
+    }
+    return quadIssueAmount;
   }
 
   /* ========== MUTATIVE FUNCTIONS ========== */
@@ -233,6 +281,62 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   }
 
   /* ========== INTERNAL FUNCTIONS ========== */
+
+  function _getMinTokenForExactToken(
+    uint256 _amountOut,
+    address _tokenA,
+    address _tokenB
+  ) internal view returns (uint256, address) {
+    uint256 maxIn = type(uint256).max;
+    uint256 tokenIn = maxIn;
+    address pair = _getPair(FACTORY, _tokenA, _tokenB);
+    if (pair != address(0)) {
+      (uint256 reserveIn, uint256 reserveOut) = UniSushiV2Library.getReserves(
+        pair,
+        _tokenA,
+        _tokenB
+      );
+      // Prevent subtraction overflow by making sure pool reserves are greater than swap amount
+      if (reserveOut > _amountOut) {
+        tokenIn = UniSushiV2Library.getAmountIn(
+          _amountOut,
+          reserveIn,
+          reserveOut
+        );
+      }
+    }
+    return (tokenIn, pair);
+  }
+
+  function _getMaxTokenForExactToken(
+    uint256 _amountIn,
+    address _tokenA,
+    address _tokenB
+  ) internal view returns (uint256, address) {
+    uint256 tokenOut;
+    address pair = _getPair(FACTORY, _tokenA, _tokenB);
+    if (pair != address(0)) {
+      (uint256 reserveIn, uint256 reserveOut) = UniSushiV2Library.getReserves(
+        pair,
+        _tokenA,
+        _tokenB
+      );
+      tokenOut = UniSushiV2Library.getAmountOut(
+        _amountIn,
+        reserveIn,
+        reserveOut
+      );
+    }
+    return (tokenOut, pair);
+  }
+
+  function _getPair(
+    address _factory,
+    address _tokenA,
+    address _tokenB
+  ) internal view returns (address) {
+    return IUniswapV2Factory(_factory).getPair(_tokenA, _tokenB);
+  }
 
   function _lockForBlock(address account) internal {
     blockLock[account] = block.number;
