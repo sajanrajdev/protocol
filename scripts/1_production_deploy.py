@@ -61,6 +61,11 @@ def deploy_quad(dev, proxyAdmin, governance, manager):
         False,
         "",
         "",
+        "WETH",
+        "UNIFACTORY",
+        "_uniRouter",
+        "_sushiFactory",
+        "_sushiRouter"
     ]
     
     print("Quad Arguments: ", args)

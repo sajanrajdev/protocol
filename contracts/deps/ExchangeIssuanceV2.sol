@@ -56,6 +56,8 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
 
   /* ============ Constants ============= */
 
+  address[] public tokens;
+
   uint256 private constant MAX_UINT96 = 2**96 - 1;
   address public constant ETH_ADDRESS =
     0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -63,11 +65,15 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
   /* ============ State Variables ============ */
 
   address public WETH;
-  IUniswapV2Router02 public uniRouter;
-  IUniswapV2Router02 public sushiRouter;
+  address public constant uniRouter =
+    0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106;
+  address public constant sushiRouter =
+    0x60aE616a2155Ee3d9A68541Ba4544862310933d4;
 
-  address public immutable uniFactory;
-  address public immutable sushiFactory;
+  address public constant uniFactory =
+    0xefa94DE7a4656D787667C749f7E1223D71E9FD88;
+  address public constant sushiFactory =
+    0x9Ad6C38BE94206cA50bb0d90783181662f0Cfa10;
 
   /* ============ Events ============ */
 
@@ -105,19 +111,11 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
   /* ============ Constructor ============ */
 
   function __ExchangeIssuanceV2_init(
-    address _weth,
-    address _uniFactory,
-    IUniswapV2Router02 _uniRouter,
-    address _sushiFactory,
-    IUniswapV2Router02 _sushiRouter
+    address[5] memory _tokensConfig,
+    address _weth
   ) public initializer whenNotPaused {
     __Pausable_init();
-
-    uniFactory = _uniFactory;
-    uniRouter = _uniRouter;
-
-    sushiFactory = _sushiFactory;
-    sushiRouter = _sushiRouter;
+    tokens = _tokensConfig;
 
     WETH = _weth;
     IERC20Upgradeable(WETH).safeApprove(
@@ -218,7 +216,7 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
       "ExchangeIssuance: INVALID INPUTS"
     );
 
-    _inputToken.safeTransferFrom(
+    IERC20Upgradeable(_inputToken).safeTransferFrom(
       msg.sender,
       address(this),
       _maxAmountInputToken
@@ -329,9 +327,15 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
     address _spender,
     uint256 _requiredAllowance
   ) internal {
-    uint256 allowance = _token.allowance(address(this), _spender);
+    uint256 allowance = IERC20Upgradeable(_token).allowance(
+      address(this),
+      _spender
+    );
     if (allowance < _requiredAllowance) {
-      _token.safeIncreaseAllowance(_spender, MAX_UINT96 - allowance);
+      IERC20Upgradeable(_token).safeIncreaseAllowance(
+        _spender,
+        MAX_UINT96 - allowance
+      );
     }
   }
 
@@ -493,7 +497,7 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
       //   );
 
       // Get minimum amount of ETH to be spent to acquire the required amount of SetToken component
-      uint256 unit = uint256(tokens(_components[i]));
+      uint256 unit = uint256(tokens[i]);
       amountComponents[i] = uint256(unit).preciseMulCeil(_amountSetToken);
 
       (

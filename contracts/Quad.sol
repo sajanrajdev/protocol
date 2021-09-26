@@ -16,7 +16,7 @@ import "../deps/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable
 import { IUniswapRouterV2 } from "../interfaces/uniswap/IUniswapRouterV2.sol";
 import "../interfaces/erc20/IERC20Detailed.sol";
 
-import "./deps/Exchange.sol";
+import "./deps/ExchangeIssuanceV2.sol";
 
 //  ________  ___  ___  ________  ________  ________
 // |\   __  \|\  \|\  \|\   __  \|\   ___ \|\   ____\
@@ -42,7 +42,7 @@ import "./deps/Exchange.sol";
 //   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 
-contract Quad is PausableUpgradeable, ERC20Upgradeable, Exchange {
+contract Quad is PausableUpgradeable, ERC20Upgradeable, ExchangeIssuanceV2 {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using AddressUpgradeable for address;
   using SafeMathUpgradeable for uint256;
@@ -54,7 +54,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable, Exchange {
   address public manager;
 
   // Accounting
-  address[] public tokens;
+  // address[] public tokens;
   uint256[] public weights;
   uint256[] public units;
   address[] public inputs;
@@ -84,11 +84,12 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable, Exchange {
     address[3] memory _inputsConfig,
     bool _overrideTokenName,
     string memory _namePrefix,
-    string memory _symbolPrefix
+    string memory _symbolPrefix,
+    address _weth
   ) public initializer whenNotPaused {
     governance = _governance;
     manager = _manager;
-    tokens = _tokensConfig;
+    // tokens = _tokensConfig;
     weights = _weightsConfig;
     units = _unitsConfig;
     inputs = _inputsConfig;
@@ -112,14 +113,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable, Exchange {
 
     // Set Exchange
 
-    __ExchangeIssuanceV2_init(
-      address _weth,
-    address _uniFactory,
-    IUniswapV2Router02 _uniRouter,
-    address _sushiFactory,
-    IUniswapV2Router02 _sushiRouter
-
-    );
+    __ExchangeIssuanceV2_init(_tokensConfig, _weth);
 
     /// @dev do one off approvals here
     IERC20Upgradeable(inputs[0]).safeApprove(
