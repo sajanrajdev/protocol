@@ -5,6 +5,7 @@ from brownie import (
     network,
     interface,
     Quad,
+    QuadExchange,
     AdminUpgradeabilityProxy,
 )
 from config import PRODUCTION_TOKENS, PRODUCTION_WEIGHTS, PRODUCTION_UNITS, PRODUCTION_INPUTS
@@ -25,66 +26,57 @@ def main():
     dev = connect_account()
 
     # Get actors
-    governance = dev.address
-    manager = dev.address
     proxyAdmin = "0x0000000000000000000000000000000000000000" # In production, governance cannot be proxy admin.
     randomUser = accounts.at("0xf258c32069e40d2AadCb8788BC0F29884845AEBA", force=True)
 
-    # Deploy Quad
 
-    quad = deploy_quad(dev, proxyAdmin, governance, manager)
-
-    quad.unpause({"from": governance})
+    exchange = deploy_quad_exchange(dev, proxyAdmin)
 
     DAI = interface.IERC20("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70")
 
     DAI.approve(
-      quad,
+      exchange,
       10000000000000000000000, 
       {"from": randomUser}
     )
 
-    quad.mint("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70",100000000000000000000, 15000000000000000000, {"from": randomUser} )
-    
+    # tx = exchange.getEstimatedQuadGivenAmount("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70", 100000000000000000000, {"from": "0xf258c32069e40d2AadCb8788BC0F29884845AEBA"} )
 
-    return quad
+    return exchange
 
-def deploy_quad(dev, proxyAdmin, governance, manager):
+def deploy_quad_exchange(dev, proxyAdmin):
 
     args = [
-        governance,
-        manager,
         PRODUCTION_TOKENS,
         PRODUCTION_WEIGHTS,
         PRODUCTION_UNITS,
-        PRODUCTION_INPUTS,
-        False,
-        "",
-        ""
+        PRODUCTION_INPUTS 
     ]
     
-    print("Quad Arguments: ", args)
+    print("QuadExchange Arguments: ", args)
 
 
-    quad_logic = Quad.deploy({"from": dev}) #Quad Logic
+    quad_exchange_logic = QuadExchange.deploy({"from": dev}) #Quad Logic
 
     time.sleep(sleep_between_tx)
 
 
-    quad_proxy = AdminUpgradeabilityProxy.deploy(
-        quad_logic,
+    quad_exchange_proxy = AdminUpgradeabilityProxy.deploy(
+        quad_exchange_logic,
         proxyAdmin,
-        quad_logic.initialize.encode_input(*args),
+        quad_exchange_logic.initialize.encode_input(*args),
         {"from": dev},
     )
     
      ## We delete from deploy and then fetch again so we can interact
-    AdminUpgradeabilityProxy.remove(quad_proxy)
-    quad_proxy = Quad.at(quad_proxy.address)
+    AdminUpgradeabilityProxy.remove(quad_exchange_proxy)
+    quad_exchange_proxy = QuadExchange.at(quad_exchange_proxy.address)
 
-    console.print("[green]Quad was deployed at: [/green]", quad_proxy.address)
+    console.print("[green]Quad Exchange was deployed at: [/green]", quad_exchange_proxy.address)
 
-    return quad_proxy
+    return quad_exchange_proxy
+
+
 
 def connect_account():
     click.echo(f"You are using the '{network.show_active()}' network")

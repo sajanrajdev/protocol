@@ -16,8 +16,6 @@ import "../deps/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable
 import { IUniswapRouterV2 } from "../interfaces/uniswap/IUniswapRouterV2.sol";
 import "../interfaces/erc20/IERC20Detailed.sol";
 
-import "./deps/ExchangeIssuanceV2.sol";
-
 //  ________  ___  ___  ________  ________  ________
 // |\   __  \|\  \|\  \|\   __  \|\   ___ \|\   ____\
 // \ \  \|\  \ \  \\\  \ \  \|\  \ \  \_|\ \ \  \___|_
@@ -42,7 +40,7 @@ import "./deps/ExchangeIssuanceV2.sol";
 //   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 
-contract Quad is PausableUpgradeable, ERC20Upgradeable, ExchangeIssuanceV2 {
+contract Quad is PausableUpgradeable, ERC20Upgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using AddressUpgradeable for address;
   using SafeMathUpgradeable for uint256;
@@ -54,7 +52,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable, ExchangeIssuanceV2 {
   address public manager;
 
   // Accounting
-  // address[] public tokens;
+  address[] public tokens;
   uint256[] public weights;
   uint256[] public units;
   address[] public inputs;
@@ -84,12 +82,12 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable, ExchangeIssuanceV2 {
     address[3] memory _inputsConfig,
     bool _overrideTokenName,
     string memory _namePrefix,
-    string memory _symbolPrefix,
-    address _weth
+    string memory _symbolPrefix
   ) public initializer whenNotPaused {
+    __Pausable_init(); // added now
     governance = _governance;
     manager = _manager;
-    // tokens = _tokensConfig;
+    tokens = _tokensConfig;
     weights = _weightsConfig;
     units = _unitsConfig;
     inputs = _inputsConfig;
@@ -110,10 +108,6 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable, ExchangeIssuanceV2 {
 
     // Set default slippage value
     sl = 10;
-
-    // Set Exchange
-
-    __ExchangeIssuanceV2_init(_tokensConfig, _weth);
 
     /// @dev do one off approvals here
     IERC20Upgradeable(inputs[0]).safeApprove(
@@ -161,38 +155,11 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable, ExchangeIssuanceV2 {
       "Input only DAI, USDC or USDT."
     );
 
-    IERC20Upgradeable(_token).safeTransferFrom(
-      msg.sender,
-      address(this),
-      _amount
-    );
-
-    uint256[] memory requiredUnits = new uint256[](tokens.length);
-
-    for (uint256 i = 0; i < tokens.length; i++) {
-      requiredUnits[i] = units[i].mul(_quantity);
-    }
-
-    for (uint256 i = 0; i < tokens.length; i++) {
-      address[] memory path = new address[](3);
-      path[0] = _token;
-      path[1] = BASE;
-      path[2] = tokens[i];
-
-      IUniswapRouterV2(PANGOLIN_ROUTER).swapExactTokensForTokens(
-        _amount.mul(weights[i]).div(MAX_BPS),
-        0,
-        path,
-        address(this),
-        now
-      );
-    }
-
     uint256 shares = 0;
     if (totalSupply() == 0) {
-      shares = _quantity;
+      shares = 0;
     } else {
-      shares = _quantity;
+      shares = 0;
     }
     _mint(msg.sender, shares);
   }

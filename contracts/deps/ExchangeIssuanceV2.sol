@@ -40,7 +40,10 @@ import { UniSushiV2Library } from "../../external/UniSushiV2Library.sol";
  * All swaps are done using the best price found on Uniswap or Sushiswap.
  *
  */
-contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
+abstract contract ExchangeIssuanceV2 is
+  PausableUpgradeable,
+  ReentrancyGuardUpgradeable
+{
   using AddressUpgradeable for address payable;
   using SafeMathUpgradeable for uint256;
   using PreciseUnitMath for uint256;
@@ -107,10 +110,11 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
 
   /* ============ Constructor ============ */
 
-  function __ExchangeIssuanceV2_init(
-    address[5] memory _tokensConfig,
-    address _weth
-  ) public initializer whenNotPaused {
+  function __ExchangeIssuanceV2_init(address[5] memory _tokensConfig)
+    public
+    initializer
+    whenNotPaused
+  {
     __Pausable_init();
     tokens = _tokensConfig;
 
@@ -122,14 +126,15 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
     uniFactory = 0xefa94DE7a4656D787667C749f7E1223D71E9FD88;
     sushiFactory = 0x9Ad6C38BE94206cA50bb0d90783181662f0Cfa10;
 
-    WETH = _weth;
+    WETH = 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7;
+
     IERC20Upgradeable(WETH).safeApprove(
-      address(uniRouter),
-      PreciseUnitMath.maxUint256()
+      0xefa94DE7a4656D787667C749f7E1223D71E9FD88,
+      type(uint256).max
     );
     IERC20Upgradeable(WETH).safeApprove(
-      address(sushiRouter),
-      PreciseUnitMath.maxUint256()
+      0x9Ad6C38BE94206cA50bb0d90783181662f0Cfa10,
+      type(uint256).max
     );
   }
 
@@ -143,8 +148,8 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
    * @param _token    Address of the token which needs approval
    */
   function approveToken(address _token) public {
-    _safeApprove(_token, address(uniRouter), MAX_UINT96);
-    _safeApprove(_token, address(sushiRouter), MAX_UINT96);
+    _safeApprove(_token, address(uniRouter), type(uint256).max);
+    _safeApprove(_token, address(sushiRouter), type(uint256).max);
     // _safeApprove(_token, address(basicIssuanceModule), MAX_UINT96);
   }
 
@@ -339,7 +344,7 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
     if (allowance < _requiredAllowance) {
       IERC20Upgradeable(_token).safeIncreaseAllowance(
         _spender,
-        MAX_UINT96 - allowance
+        type(uint256).max - allowance
       );
     }
   }
@@ -598,7 +603,7 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
       pairAddresses
     ) = _getAmountETHForIssuance(_components, PreciseUnitMath.preciseUnit());
 
-    setIssueAmount = PreciseUnitMath.maxUint256();
+    setIssueAmount = type(uint256).max;
     amountEthIn = new uint256[](_components.length);
 
     for (uint256 i = 0; i < _components.length; i++) {
@@ -706,7 +711,7 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
     return
       _getRouter(_exchange).swapTokensForExactTokens(
         _amountOut,
-        PreciseUnitMath.maxUint256(),
+        type(uint256).max,
         path,
         address(this),
         block.timestamp
@@ -742,7 +747,7 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
       return (_amountOut, Exchange.None, ETH_ADDRESS);
     }
 
-    uint256 maxIn = PreciseUnitMath.maxUint256();
+    uint256 maxIn = type(uint256).max;
     uint256 uniTokenIn = maxIn;
     uint256 sushiTokenIn = maxIn;
 
@@ -785,10 +790,7 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
       !(uniTokenIn == maxIn && sushiTokenIn == maxIn),
       "ExchangeIssuance: ILLIQUID_SET_COMPONENT"
     );
-    return
-      (uniTokenIn <= sushiTokenIn)
-        ? (uniTokenIn, Exchange.Uniswap, uniswapPair)
-        : (sushiTokenIn, Exchange.Sushiswap, sushiswapPair);
+    return (uniTokenIn, Exchange.Uniswap, uniswapPair);
   }
 
   /**
@@ -856,10 +858,7 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
       !(uniTokenOut == 0 && sushiTokenOut == 0),
       "ExchangeIssuance: ILLIQUID_SET_COMPONENT"
     );
-    return
-      (uniTokenOut >= sushiTokenOut)
-        ? (uniTokenOut, Exchange.Uniswap, uniswapPair)
-        : (sushiTokenOut, Exchange.Sushiswap, sushiswapPair);
+    return (uniTokenOut, Exchange.Uniswap, uniswapPair);
   }
 
   /**
