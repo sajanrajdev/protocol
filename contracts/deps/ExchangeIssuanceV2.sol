@@ -65,15 +65,12 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
   /* ============ State Variables ============ */
 
   address public WETH;
-  address public constant uniRouter =
-    0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106;
-  address public constant sushiRouter =
-    0x60aE616a2155Ee3d9A68541Ba4544862310933d4;
 
-  address public constant uniFactory =
-    0xefa94DE7a4656D787667C749f7E1223D71E9FD88;
-  address public constant sushiFactory =
-    0x9Ad6C38BE94206cA50bb0d90783181662f0Cfa10;
+  IUniswapV2Router02 public uniRouter;
+  IUniswapV2Router02 public sushiRouter;
+
+  address public uniFactory;
+  address public sushiFactory;
 
   /* ============ Events ============ */
 
@@ -116,6 +113,14 @@ contract ExchangeIssuanceV2 is PausableUpgradeable, ReentrancyGuardUpgradeable {
   ) public initializer whenNotPaused {
     __Pausable_init();
     tokens = _tokensConfig;
+
+    uniRouter = IUniswapV2Router02(0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106);
+    sushiRouter = IUniswapV2Router02(
+      0x60aE616a2155Ee3d9A68541Ba4544862310933d4
+    );
+
+    uniFactory = 0xefa94DE7a4656D787667C749f7E1223D71E9FD88;
+    sushiFactory = 0x9Ad6C38BE94206cA50bb0d90783181662f0Cfa10;
 
     WETH = _weth;
     IERC20Upgradeable(WETH).safeApprove(
