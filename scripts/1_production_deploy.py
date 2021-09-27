@@ -44,11 +44,14 @@ def main():
       {"from": randomUser}
     )
 
-    quad.mint("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70",100000000000000000000, 15000000000000000000, {"from": randomUser} )
-
-    # preview = quad.getEstimatedQuadsGivenInput("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70", 100000000000000000000)
+    preview = quad.getEstimatedQuadsGivenInput("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70", 100000000000000000000)
     
-    # console.print("[green]100 DAI is [/green]", preview)
+    console.print("[green]100 DAI is [/green]", preview)
+
+    quad.mint("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70",100000000000000000000, 20000000000000000000, {"from": randomUser} )
+    
+    console.print("[green]Total Supply [/green]", quad.totalSupply())
+
 
     return quad
 

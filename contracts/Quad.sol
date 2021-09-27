@@ -68,6 +68,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   address public constant ROUTER = 0x60aE616a2155Ee3d9A68541Ba4544862310933d4;
   address public constant FACTORY = 0x9Ad6C38BE94206cA50bb0d90783181662f0Cfa10;
 
+  uint256 private constant MAX_UINT96 = 2**96 - 1;
   uint256 public sl;
   uint256 public constant MAX_BPS = 10000;
 
@@ -136,7 +137,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   function getEstimatedQuadsGivenInput(
     address _inputToken,
     uint256 _amountInput
-  ) internal view returns (uint256) {
+  ) external view returns (uint256) {
     require(_amountInput > 0, "Quad: INVALID INPUTS");
     uint256 amountEth;
     if (_inputToken != WETH) {
@@ -202,12 +203,17 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
       _token == inputs[0] || _token == inputs[1] || _token == inputs[2],
       "Input only DAI, USDC or USDT."
     );
+    uint256 targetShares = _calculateQuadForExactToken(
+      _token,
+      _amount,
+      _quantity
+    );
 
     uint256 shares = 0;
     if (totalSupply() == 0) {
-      shares = 0;
+      shares = targetShares;
     } else {
-      shares = 0;
+      shares = targetShares;
     }
     _mint(msg.sender, shares);
   }
@@ -282,6 +288,81 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
 
   /* ========== INTERNAL FUNCTIONS ========== */
 
+  function _safeApprove(
+    address _token,
+    address _spender,
+    uint256 _requiredAllowance
+  ) internal {
+    uint256 allowance = IERC20Upgradeable(_token).allowance(
+      address(this),
+      _spender
+    );
+    if (allowance < _requiredAllowance) {
+      IERC20Upgradeable(_token).safeIncreaseAllowance(
+        _spender,
+        MAX_UINT96 - allowance
+      );
+    }
+  }
+
+  function _calculateQuadForExactToken(
+    address _inputToken,
+    uint256 _amountInput,
+    uint256 _minQuadReceive
+  ) internal returns (uint256) {
+    require(_amountInput > 0, "Quad: INVALID INPUTS");
+    IERC20Upgradeable(_inputToken).safeTransferFrom(
+      msg.sender,
+      address(this),
+      _amountInput
+    );
+
+    uint256 amountEth = _inputToken == WETH
+      ? _amountInput
+      : _swapTokenForWETH(_inputToken, _amountInput);
+
+    // uint256 quadTokenAmount = _issueQuadForExactWETH(
+    //   _minQuadReceive,
+    //   amountEth
+    // );
+
+    address[] memory components = tokens;
+    uint256 sumEth = 0;
+    uint256[] memory amountEthIn = new uint256[](components.length);
+    address[] memory pairAddresses = new address[](components.length);
+    for (uint256 i = 0; i < components.length; i++) {
+      (amountEthIn[i], pairAddresses[i]) = _getMinTokenForExactToken(
+        units[i],
+        WETH,
+        tokens[i]
+      );
+      sumEth = sumEth.add(amountEthIn[i]);
+    }
+    uint256[] memory budgetPerComponent = new uint256[](components.length);
+    for (uint256 i = 0; i < components.length; i++) {
+      // Needs to account for weight in portfolio
+      budgetPerComponent[i] = amountEth.mul(weights[i]).div(MAX_BPS);
+    }
+    uint256[] memory divisors = new uint256[](components.length);
+    for (uint256 i = 0; i < components.length; i++) {
+      divisors[i] = budgetPerComponent[i].div(amountEthIn[i]);
+    }
+
+    for (uint256 i = 0; i < components.length; i++) {
+      _swapExactTokensForTokens(
+        WETH,
+        components[i],
+        amountEthIn[i].mul(divisors[i])
+      );
+    }
+    uint256 quadIssueAmount = type(uint256).max;
+
+    for (uint256 i = 0; i < components.length; i++) {
+      quadIssueAmount = MathUpgradeable.min(divisors[i], quadIssueAmount);
+    }
+    return quadIssueAmount;
+  }
+
   function _getMinTokenForExactToken(
     uint256 _amountOut,
     address _tokenA,
@@ -328,6 +409,35 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
       );
     }
     return (tokenOut, pair);
+  }
+
+  function _swapTokenForWETH(address _token, uint256 _amount)
+    internal
+    returns (uint256)
+  {
+    _safeApprove(_token, ROUTER, _amount);
+    return _swapExactTokensForTokens(_token, WETH, _amount);
+  }
+
+  function _swapExactTokensForTokens(
+    address _tokenIn,
+    address _tokenOut,
+    uint256 _amountIn
+  ) internal returns (uint256) {
+    if (_tokenIn == _tokenOut) {
+      return _amountIn;
+    }
+    address[] memory path = new address[](2);
+    path[0] = _tokenIn;
+    path[1] = _tokenOut;
+    return
+      IUniswapRouterV2(ROUTER).swapExactTokensForTokens(
+        _amountIn,
+        0,
+        path,
+        address(this),
+        now
+      )[1];
   }
 
   function _getPair(
