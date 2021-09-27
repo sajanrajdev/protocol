@@ -216,7 +216,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
    *
    * @param _token       Address of input token
    * @param _amount      Amount of the input token / ether to spend
-   * @param _quantity    Minimum amount of SetTokens to receive. Prevents unnecessary slippage.
+   * @param _quantity    Minimum amount of QuadTokens to receive. Prevents unnecessary slippage.
    */
   function mint(
     address _token,
@@ -401,7 +401,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
    * @param _amountInput      Amount of the input token / ether to spend
    * @param _minQuadReceive   Minimum amount of QuadTokens to receive. Prevents unnecessary slippage.
    *
-   * @return quadIssueAmount  Amount of SetTokens issued to the caller
+   * @return quadIssueAmount  Amount of QuadTokens issued to the caller
    */
   function _calculateQuadForExactToken(
     address _inputToken,
