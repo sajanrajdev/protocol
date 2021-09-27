@@ -456,6 +456,17 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     return quadIssueAmount;
   }
 
+  /**
+   * Compares the amount of token required for an exact amount of another token across the exchange,
+   * and returns the min amount.
+   *
+   * @param _amountOut    The amount of output token
+   * @param _tokenA       The address of tokenA
+   * @param _tokenB       The address of tokenB
+   *
+   * @return              The min amount of tokenA required across both exchanges
+   * @return              The pair address of the uniswap/sushiswap pool containing _tokenA and _tokenB
+   */
   function _getMinTokenForExactToken(
     uint256 _amountOut,
     address _tokenA,
@@ -482,6 +493,17 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     return (tokenIn, pair);
   }
 
+  /**
+   * Compares the amount of token received for an exact amount of another token across the exchange,
+   * and returns the max amount.
+   *
+   * @param _amountIn     The amount of input token
+   * @param _tokenA       The address of tokenA
+   * @param _tokenB       The address of tokenB
+   *
+   * @return              The max amount of tokens that can be received across both exchanges
+   * @return              The pair address of the uniswap/sushiswap pool containing _tokenA and _tokenB
+   */
   function _getMaxTokenForExactToken(
     uint256 _amountIn,
     address _tokenA,
@@ -504,6 +526,14 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     return (tokenOut, pair);
   }
 
+  /**
+   * Swaps a given amount of an ERC20 token for WETH for the best price on the exchange.
+   *
+   * @param _token    Address of the ERC20 token to be swapped for WETH
+   * @param _amount   Amount of ERC20 token to be swapped
+   *
+   * @return          Amount of WETH received after the swap
+   */
   function _swapTokenForWETH(address _token, uint256 _amount)
     internal
     returns (uint256)
@@ -512,6 +542,15 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     return _swapExactTokensForTokens(_token, WETH, _amount);
   }
 
+  /**
+   * Swap exact tokens for another token on a given DEX.
+   *
+   * @param _tokenIn      The address of the input token
+   * @param _tokenOut     The address of the output token
+   * @param _amountIn     The amount of input token to be spent
+   *
+   * @return              The amount of output tokens
+   */
   function _swapExactTokensForTokens(
     address _tokenIn,
     address _tokenOut,
@@ -533,6 +572,15 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
       )[1];
   }
 
+  /**
+   * Returns the pair address for on a given DEX.
+   *
+   * @param _factory   The factory to address
+   * @param _tokenA    The address of tokenA
+   * @param _tokenB    The address of tokenB
+   *
+   * @return           The pair address (Note: address(0) is returned by default if the pair is not available on that DEX)
+   */
   function _getPair(
     address _factory,
     address _tokenA,
@@ -541,35 +589,53 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     return IUniswapV2Factory(_factory).getPair(_tokenA, _tokenB);
   }
 
+  /**
+   * Note: blockLock does not allow users to transfer tokens in the same block as a mint or burn.
+   */
   function _lockForBlock(address account) internal {
     blockLock[account] = block.number;
   }
 
   /* ========== MODIFIERS ========== */
 
+  /**
+   * Note: Only governance and manager allowed to pause.
+   */
   function _onlyAuthorizedPausers() internal view {
     require(msg.sender == manager || msg.sender == governance, "onlyPausers");
   }
 
+  /**
+   * Note: Allows only governance to continue method call.
+   */
   function _onlyGovernance() internal view {
     require(msg.sender == governance, "onlyGovernance");
   }
 
+  /**
+   * Note: Allows only manager to continue method call.
+   */
   function _onlyManager() internal view {
     require(msg.sender == manager, "onlyGovernance");
   }
 
+  /**
+   * Note: Checks block.timestamp and ensures one block has passed since the user's last method call (mint/burn).
+   */
   function _blockLocked() internal view {
     require(blockLock[msg.sender] < block.number, "blockLocked");
   }
 
+  /**
+   * Note: Allows only EOAs to make calls.
+   */
   function _defend() internal view returns (bool) {
     require(msg.sender == tx.origin, "Access denied for caller");
   }
 
   /* ========== ERC20 OVERRIDES ========== */
 
-  /// @dev Add blockLock to transfers, users cannot transfer tokens in the same block as a deposit or withdrawal.
+  /// @dev Add blockLock to transfer, users cannot transfer tokens in the same block as a deposit or withdrawal.
   function transfer(address recipient, uint256 amount)
     public
     virtual
@@ -581,6 +647,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     return super.transfer(recipient, amount);
   }
 
+  /// @dev Add blockLock to transferFrom, users cannot transfer tokens in the same block as a deposit or withdrawal.
   function transferFrom(
     address sender,
     address recipient,
