@@ -76,7 +76,7 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   mapping(address => uint256) public blockLock;
 
   // Token
-  string internal constant _defaultName = "AVAX Blue Chip";
+  string internal constant _defaultName = "AVAX Blue Chip Quad";
   string internal constant _defaultSymbol = "DEFI5";
 
   /* ========== CONSTRUCTOR ========== */

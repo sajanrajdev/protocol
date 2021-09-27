@@ -52,6 +52,20 @@ def main():
     
     console.print("[green]Total Supply [/green]", quad.totalSupply())
 
+    JOE = interface.IERC20("0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd")
+
+    console.print("[green]JOE balance in Quad after mint:[/green]", JOE.balanceOf(quad))
+
+    quad.burn(quad.balanceOf(randomUser),  {"from": randomUser} )
+
+    console.print("[green]JOE balance in Quad after burn:[/green]", JOE.balanceOf(quad))
+
+    console.print("[green]JOE balance in RandomUser after burn:[/green]", JOE.balanceOf(randomUser))
+    
+    console.print("[green]Quad balance totalSupply after burn:[/green]", quad.totalSupply())
+
+
+
 
     return quad
 
