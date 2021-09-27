@@ -76,8 +76,8 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
   mapping(address => uint256) public blockLock;
 
   // Token
-  string internal constant _defaultNamePrefix = "Quad ";
-  string internal constant _symbolSymbolPrefix = "ABC ";
+  string internal constant _defaultName = "AVAX Blue Chip";
+  string internal constant _defaultSymbol = "DEFI5";
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -104,11 +104,11 @@ contract Quad is PausableUpgradeable, ERC20Upgradeable {
     string memory symbol;
 
     if (_overrideTokenName) {
-      name = string(abi.encodePacked(_namePrefix, "Index"));
-      symbol = string(abi.encodePacked(_symbolPrefix, "QUAD"));
+      name = string(abi.encodePacked(_namePrefix));
+      symbol = string(abi.encodePacked(_symbolPrefix));
     } else {
-      name = string(abi.encodePacked(_defaultNamePrefix, "AVAX Blue Chip"));
-      symbol = string(abi.encodePacked(_symbolSymbolPrefix, "QUAD"));
+      name = string(abi.encodePacked(_defaultName));
+      symbol = string(abi.encodePacked(_defaultSymbol));
     }
 
     // Token Init
