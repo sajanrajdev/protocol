@@ -7,7 +7,7 @@ from brownie import (
     Quad,
     AdminUpgradeabilityProxy,
 )
-from config import PRODUCTION_TOKENS, PRODUCTION_WEIGHTS, PRODUCTION_INPUTS
+from config import PRODUCTION_TOKENS, PRODUCTION_WEIGHTS, PRODUCTION_UNITS, PRODUCTION_INPUTS
 
 import click
 from rich.console import Console
@@ -28,13 +28,45 @@ def main():
     governance = dev.address
     manager = dev.address
     proxyAdmin = "0x0000000000000000000000000000000000000000" # In production, governance cannot be proxy admin.
+    randomUser = accounts.at("0xf258c32069e40d2AadCb8788BC0F29884845AEBA", force=True)
 
     # Deploy Quad
 
     quad = deploy_quad(dev, proxyAdmin, governance, manager)
 
     quad.unpause({"from": governance})
+
+    DAI = interface.IERC20("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70")
+
+    DAI.approve(
+      quad,
+      10000000000000000000000, 
+      {"from": randomUser}
+    )
+
+    preview = quad.getEstimatedQuadsGivenInput("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70", 100000000000000000000)
     
+    console.print("[green]100 DAI is [/green]", preview)
+
+    quad.mint("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70",100000000000000000000, 20000000000000000000, {"from": randomUser} )
+    
+    console.print("[green]Total Supply [/green]", quad.totalSupply())
+
+    JOE = interface.IERC20("0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd")
+
+    console.print("[green]JOE balance in Quad after mint:[/green]", JOE.balanceOf(quad))
+
+    quad.burn(quad.balanceOf(randomUser),  {"from": randomUser} )
+
+    console.print("[green]JOE balance in Quad after burn:[/green]", JOE.balanceOf(quad))
+
+    console.print("[green]JOE balance in RandomUser after burn:[/green]", JOE.balanceOf(randomUser))
+    
+    console.print("[green]Quad balance totalSupply after burn:[/green]", quad.totalSupply())
+
+
+
+
     return quad
 
 def deploy_quad(dev, proxyAdmin, governance, manager):
@@ -44,10 +76,11 @@ def deploy_quad(dev, proxyAdmin, governance, manager):
         manager,
         PRODUCTION_TOKENS,
         PRODUCTION_WEIGHTS,
+        PRODUCTION_UNITS,
         PRODUCTION_INPUTS,
         False,
         "",
-        "",
+        ""
     ]
     
     print("Quad Arguments: ", args)
@@ -64,7 +97,7 @@ def deploy_quad(dev, proxyAdmin, governance, manager):
         quad_logic.initialize.encode_input(*args),
         {"from": dev},
     )
-
+    
      ## We delete from deploy and then fetch again so we can interact
     AdminUpgradeabilityProxy.remove(quad_proxy)
     quad_proxy = Quad.at(quad_proxy.address)
