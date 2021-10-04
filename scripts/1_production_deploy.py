@@ -28,7 +28,7 @@ def main():
     governance = dev.address
     manager = dev.address
     proxyAdmin = "0x0000000000000000000000000000000000000000" # In production, governance cannot be proxy admin.
-    randomUser = accounts.at("0xf258c32069e40d2AadCb8788BC0F29884845AEBA", force=True)
+    randomUser = accounts.at("0xd09e4C2AB4C42cA5afd1756ad5899634421ABF07", force=True)
 
     # Deploy Quad
 
@@ -46,9 +46,11 @@ def main():
 
     preview = quad.getEstimatedQuadsGivenInput("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70", 100000000000000000000)
     
+    console.print("[green]RandUser bal of DAI is [/green]", DAI.balanceOf(randomUser))
+
     console.print("[green]100 DAI is [/green]", preview)
 
-    quad.mint("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70",100000000000000000000, 20000000000000000000, {"from": randomUser} )
+    quad.mint("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70",100000000000000000000, 25000000000000000000, {"from": randomUser} )
     
     console.print("[green]Total Supply [/green]", quad.totalSupply())
 
@@ -63,6 +65,9 @@ def main():
     console.print("[green]JOE balance in RandomUser after burn:[/green]", JOE.balanceOf(randomUser))
     
     console.print("[green]Quad balance totalSupply after burn:[/green]", quad.totalSupply())
+
+    console.print("[green]RandUser bal of DAI is [/green]", DAI.balanceOf(randomUser))
+
 
 
 
