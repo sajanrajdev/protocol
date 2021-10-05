@@ -35,7 +35,7 @@ class SnapshotManager:
     def addAsset(self, key, asset):
         self.assets[key] = asset
     
-    def test(self):
+    def before(self):
         table = []
 
         for x in self.entities.items():
@@ -47,9 +47,29 @@ class SnapshotManager:
                 metric = '{} balance of {}'.format(entityName, tokenName)
                 table.append([metric, tokenBalance])
         
-        print(tabulate( table, headers=["metric", "before"], tablefmt="grid"))   
+        print(tabulate( table, headers=["metric", "before"], tablefmt="grid"))
 
 
+    def after(self):
+        table = []
+
+        for x in self.entities.items():
+            entityName = x[0]
+            entityAddress = x[1]
+            for a in self.assets.items():
+                tokenName = a[0]
+                tokenBalance = interface.IERC20(a[1]).balanceOf(entityAddress)
+                metric = '{} balance of {}'.format(entityName, tokenName)
+                table.append([metric, tokenBalance])
+        
+        print(tabulate( table, headers=["metric", "after"], tablefmt="grid"))  
+    
+    def quad_mint(self, inputToken, amount, qty, overrides):
+        self.quad.mint(inputToken, amount, qty, overrides)
+
+
+
+    
 
 
         

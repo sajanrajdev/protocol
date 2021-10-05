@@ -28,7 +28,7 @@ def deployed():
     manager = accounts.at("0x0754f5901702246350D232E099033787438d8130", force=True)
     governance = accounts.at(QUAD_MULTISIG, force=True)
     proxyAdmin = accounts[2]
-    randomUser = accounts.at("0xd09e4C2AB4C42cA5afd1756ad5899634421ABF07", force=True)
+    randomUser = accounts.at("0x2DDde1E646557328F3709E07Ca1E2176eCcF1465", force=True)
 
     # Deploy proxy and Quad instance
 
