@@ -7,7 +7,7 @@ from brownie import (
 )
 
 from config import (
-    PRODUCTION_TOKENS, PRODUCTION_WEIGHTS, PRODUCTION_INPUTS, QUAD_MULTISIG
+    PRODUCTION_TOKENS, PRODUCTION_WEIGHTS, PRODUCTION_UNITS, PRODUCTION_INPUTS, QUAD_MULTISIG
 )
 
 from dotmap import DotMap, test
@@ -28,7 +28,7 @@ def deployed():
     manager = accounts.at("0x0754f5901702246350D232E099033787438d8130", force=True)
     governance = accounts.at(QUAD_MULTISIG, force=True)
     proxyAdmin = accounts[2]
-    randomUser = accounts.at("0xf258c32069e40d2AadCb8788BC0F29884845AEBA", force=True)
+    randomUser = accounts.at("0xd09e4C2AB4C42cA5afd1756ad5899634421ABF07", force=True)
 
     # Deploy proxy and Quad instance
 
@@ -37,10 +37,11 @@ def deployed():
         manager,
         PRODUCTION_TOKENS,
         PRODUCTION_WEIGHTS,
+        PRODUCTION_UNITS,
         PRODUCTION_INPUTS,
         False,
         "",
-        "",
+        ""
     ]
 
     quad_logic = Quad.deploy({"from": deployer})

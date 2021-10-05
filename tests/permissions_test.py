@@ -42,15 +42,20 @@ def test_quad_pausing_permissions(quad, randomUser):
     #  other roles
 
     with brownie.reverts("Pausable: paused"):
-        quad.mint("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70", 100000000000000000000, {"from": randomUser})
+        quad.mint("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70", 100000000000000000000, 25000000000000000000, {"from": randomUser})
     with brownie.reverts("Pausable: paused"):
         quad.burn(1, {"from": randomUser})
 
     
     quad.unpause({"from": authorizedUnpausers[0]})
 
-    quad.mint("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70", 100000000000000000000, {"from": randomUser})
-    quad.burn(100000000000000000000, {"from": "0xf258c32069e40d2AadCb8788BC0F29884845AEBA"} )
+    quad.mint("0xd586E7F844cEa2F87f50152665BCbc2C279D8d70", 100000000000000000000, 25000000000000000000, {"from": randomUser})
+
+    burnAmount = quad.balanceOf(randomUser)
+
+    print(burnAmount)
+
+    quad.burn(burnAmount, {"from": randomUser} )
 
 
 
