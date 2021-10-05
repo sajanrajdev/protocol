@@ -9,7 +9,7 @@ def test_mint_flow(quad):
     # Setup
     snap = SnapshotManager(quad, "quadSnapshot")
     # End Setup
-    snap.before()
+    snap.test()
    # Print table with metric, before, after and diff
 
    # Add assertions and reverts using the snap.before and snap.after objects
